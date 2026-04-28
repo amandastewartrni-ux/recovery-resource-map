@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <title>Recovery Resource Map</title>
 
+  <!-- Leaflet CSS -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -24,66 +25,84 @@
 
 <div id="map"></div>
 
+<!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-<script>
-  const map = L.map('map').setView([39.63, -79.95], 12);
+<!-- YAML parser -->
+<script src="https://unpkg.com/js-yaml@4/dist/js-yaml.min.js"></script>
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
+<script>
+  // ---------- CONFIG ----------
+  const WIKI_BASE_URL = "http://52.15.188.10";
+  const GRAPHQL_URL = WIKI_BASE_URL + "/graphql";
+  const RESOURCE_PATH_PREFIX = "/resources/";
+
+  // ---------- MAP ----------
+  const map = L.map("map").setView([39.63, -79.95], 12);
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap contributors"
   }).addTo(map);
 
-  const GRAPHQL_URL = "http://52.15.188.10/graphql";
-
-  async function fetchResources() {
-    const response = await fetch(GRAPHQL_URL, {
+  // ---------- GRAPHQL ----------
+  async function listPages() {
+    const res = await fetch(GRAPHQL_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         query: `
           query {
             pages {
-              list(path: "/resources", limit: 200) {
+              list(limit: 200) {
                 path
                 title
-                meta
               }
             }
           }
         `
       })
     });
-
-    const json = await response.json();
+    const json = await res.json();
     return json.data.pages.list;
   }
 
+  // ---------- FETCH PAGE HTML ----------
+  async function fetchPageHTML(path) {
+    const res = await fetch(WIKI_BASE_URL + path);
+    return res.text();
+  }
+
+  function extractFrontMatter(html) {
+    const match = html.match(/<pre class="language-yaml">([\s\S]*?)<\/pre>/);
+    if (!match) return null;
+    try {
+      return jsyaml.load(match[1]);
+    } catch {
+      return null;
+    }
+  }
+
+  // ---------- MAIN ----------
   async function plotResources() {
-    const pages = await fetchResources();
+    const pages = await listPages();
 
-    pages.forEach(page => {
-      const meta = page.meta;
+    for (const page of pages) {
+      if (!page.path.startsWith(RESOURCE_PATH_PREFIX)) continue;
 
-      const lat = meta?.location?.geo?.latitude;
-      const lng = meta?.location?.geo?.longitude;
-      if (!lat || !lng) return;
+      const html = await fetchPageHTML(page.path);
+      const fm = extractFrontMatter(html);
+      if (!fm) continue;
 
-      const name = meta?.resource?.name || page.title;
-      const type = meta?.resource?.type || "";
+      const lat = fm?.location?.geo?.latitude;
+      const lng = fm?.location?.geo?.longitude;
+      if (!lat || !lng) continue;
+
+      const name = fm?.resource?.name || page.title;
+      const type = fm?.resource?.type || "";
 
       L.marker([lat, lng])
         .addTo(map)
         .bindPopup(
           `<strong>${name}</strong><br/>
            ${type}<br/>
-           <a href="${page.path}"rce</a>`
-        );
-    });
-  }
-
-  plotResources();
-</script>
-
-
-</body>
-</html>
+           <a href="${page.path}" target="_blank

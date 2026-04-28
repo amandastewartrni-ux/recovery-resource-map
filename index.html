@@ -9,7 +9,69 @@
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
   />
+<script>
+  const map = L.map('map').setView([39.63, -79.95], 12);
 
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
+
+  const GRAPHQL_URL = "http://52.15.188.10/graphql";
+
+  async function fetchResources() {
+    const response = await fetch(GRAPHQL_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: `
+          query {
+            pages {
+              list(path: "/resources", limit: 200) {
+                path
+                title
+                content
+              }
+            }
+          }
+        `
+      })
+    });
+
+    const json = await response.json();
+    return json.data.pages.list;
+  }
+
+  function extractFrontMatter(markdown) {
+    const match = markdown.match(/^---([\\s\\S]*?)---/);
+    if (!match) return null;
+    return jsyaml.load(match[1]);
+  }
+
+  async function plotResources() {
+    const pages = await fetchResources();
+
+    pages.forEach(page => {
+      const fm = extractFrontMatter(page.content);
+      if (!fm) return;
+
+      const lat = fm?.location?.geo?.latitude;
+      const lng = fm?.location?.geo?.longitude;
+      if (!lat || !lng) return;
+
+      const name = fm?.resource?.name || page.title;
+      const type = fm?.resource?.type || "";
+
+      L.marker([lat, lng])
+        .addTo(map)
+        .bindPopup(
+          `<strong>${name}</strong><br/>${type}<br/>
+           <a href="${page.path}" target`
+        );
+    });
+  }
+
+  plotResources();
+</script>
   <style>
     body {
       margin: 0;
@@ -28,20 +90,7 @@
 <!-- ✅ Leaflet JS (must be a <script src=...> tag) -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-<script>
-  // Create the map centered near Morgantown
-  const map = L.map('map').setView([39.63, -79.95], 12);
 
-  // Add OpenStreetMap tiles
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
-  }).addTo(map);
-
-  // Add a test marker
-  L.marker([39.64, -79.96])
-    .addTo(map)
-    .bindPopup('<strong>Test Location</strong><br>Map is working!');
-</script>
 
 </body>
 </html>

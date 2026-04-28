@@ -4,7 +4,6 @@
   <meta charset="utf-8">
   <title>Recovery Resource Map</title>
 
-  <!-- Leaflet CSS -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -25,7 +24,21 @@
 
 <div id="map"></div>
 
-<!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-<!-- YAML parser -->
+<script>
+  alert("JavaScript is running");
+
+  var map = L.map('map').setView([39.63, -79.95], 12);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
+
+  L.marker([39.64, -79.96])
+    .addTo(map)
+    .bindPopup("Test marker");
+</script>
+
+</body>
+</html>

@@ -11,12 +11,13 @@
   />
 
   <style>
-    body {
+    html, body {
+      height: 100%;
       margin: 0;
-      font-family: Arial, sans-serif;
     }
+
     #map {
-      height: 100vh;
+      height: 100%;
       width: 100%;
     }
   </style>
@@ -28,8 +29,18 @@
 <!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-<!-- YAML parser -->
-<script src="https://unpkg.com/js-yaml@4/dist/js-yaml.min.js"></script>
-
 <script>
-  /* 1. Create the map */
+  const map = L.map('map').setView([39.63, -79.95], 12);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
+
+  L.marker([39.64, -79.96])
+    .addTo(map)
+    .bindPopup('Test marker');
+</script>
+
+</body>
+</html>
+``
